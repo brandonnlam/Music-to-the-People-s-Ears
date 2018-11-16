@@ -15,7 +15,7 @@ class Soup: #why did i make this
 #5. voila bitch
 def main():
 	# lupe = bs4(codecs.open("b.html",'r'),'html.parser') #a.html from the same folder
-	urlpage = 'https://www.lyricsfreak.com/t/thomas+rhett/beer+with+jesus_21045836.html'
+	urlpage = 'https://www.lyricsfreak.com/p/packy/wobbin_21106268.html'
 	req = Request(urlpage, headers={'User-Agent': 'Mozilla/5.0'})  #the block all humans
 	souppage = bs4(urlopen(req).read(),'html.parser') #so many different variations
 	soupstring=str(souppage)
@@ -78,7 +78,8 @@ def main():
 			word=word+char
 		else:
 			pass
-
+	
+	# print(wordlist)
 	identity = urlpage.split('/')
 	artist = identity[4]
 	song = identity[5].split('_')[0]
@@ -167,8 +168,12 @@ def preprocessing(wordlist, artist, song):
 			delete_flag = False
 			continue
 		if not delete_flag:
-			word = word.strip(' ;!,?(){}*')
-			file.write(word + ' ')
+			word = word.strip(' ;!,?(){}*"')
+			word = word.splitlines()
+			new_word = ''
+			for elem in word:
+				new_word += elem
+			file.write(new_word + ' ')
 	file.close()
 
 main()

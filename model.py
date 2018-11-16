@@ -9,10 +9,10 @@ import operator
 from collections import defaultdict, Counter
 
 # Global class labels.
-RAP_POS_LABEL = 'PopularRap'
-RAP_NEG_LABEL = 'UnpopularRap'
-COUNTRY_POS_LABEL = 'PopularCountry'
-COUNTRY_NEG_LABEL = 'UnpopularCountry'
+RAP_POS_LABEL = 'popular_rap'
+RAP_NEG_LABEL = 'unpopular_rap'
+COUNTRY_POS_LABEL = 'popular_country'
+COUNTRY_NEG_LABEL = 'unpopular_country'
 
 def tokenize_doc(doc):
     """
@@ -42,7 +42,7 @@ def n_word_tokens(word_counts):
     return int(sum(word_counts.values()))
 
 class NaiveBayesTextClassification:
-	def __init__(self, path_to_data, tokenizer):
+    def __init__(self, path_to_data, tokenizer):
         # Vocabulary is a set that stores every word seen in the training data
         self.vocab = set()
         self.path_to_data = path_to_data
@@ -78,16 +78,16 @@ class NaiveBayesTextClassification:
                                    COUNTRY_POS_LABEL: defaultdict(float),
                                    COUNTRY_NEG_LABEL: defaultdict(float) }
 
-	def train_model(self):
+    def train_model(self):
         """
         This function processes the entire training set using the global PATH
         variable above.  It makes use of the tokenize_doc and update_model
         functions you will implement.
         """
 
-        pos_path = os.path.join(self.train_dir, POS_LABEL)
-        neg_path = os.path.join(self.train_dir, NEG_LABEL)
-        for (p, label) in [ (pos_path, POS_LABEL), (neg_path, NEG_LABEL) ]:
+        pos_rap_path = os.path.join(self.rap_train_dir, RAP_POS_LABEL)
+        neg_rap_path = os.path.join(self.rap_train_dir, RAP_NEG_LABEL)
+        for (p, label) in [ (pos_rap_path, RAP_POS_LABEL), (neg_par_path, RAP_NEG_LABEL) ]:
             for f in os.listdir(p):
                 with open(os.path.join(p,f),'r') as doc:
                     content = doc.read()
@@ -251,4 +251,3 @@ class NaiveBayesTextClassification:
                         correct += 1.0
                     total += 1.0
         return 100 * correct / total
-
