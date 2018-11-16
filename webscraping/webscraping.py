@@ -1,11 +1,12 @@
 from bs4 import BeautifulSoup as bs4
 import codecs
 from urllib.request import Request, urlopen
-
+import re
 
 class Soup: #why did i make this
 	def __init__(self,html):
 		self.html = html
+		
 #To Use, 
 #1. comment out lupe variable
 #2. put your url into urlpage variable and uncomment
@@ -14,7 +15,7 @@ class Soup: #why did i make this
 #5. voila bitch
 def main():
 	# lupe = bs4(codecs.open("b.html",'r'),'html.parser') #a.html from the same folder
-	urlpage = 'https://www.lyricsfreak.com/e/eminem/renegade_20308049.html'
+	urlpage = 'https://www.lyricsfreak.com/t/thomas+rhett/unforgettable_21124675.html'
 	req = Request(urlpage, headers={'User-Agent': 'Mozilla/5.0'})  #the block all humans
 	souppage = bs4(urlopen(req).read(),'html.parser') #so many different variations
 	soupstring=str(souppage)
@@ -32,11 +33,15 @@ def main():
 					break
 				else:
 					if char =='>':
+						word=word+char
 						tagflag=False
+						wordlist.append(word)
 						word=""
 						pass
 					if char==']':
+						word=word+char
 						breakflag=False
+						wordlist.append(word)
 						word=""
 						pass
 			elif char == '<':
@@ -73,7 +78,13 @@ def main():
 			word=word+char
 		else:
 			pass
-	print(wordlist)
+
+	identity = urlpage.split('/')
+	artist = identity[4]
+	song = identity[5].split('_')[0]
+
+	preprocessing(wordlist, artist, song)
+
 	# print(codecs.open("b.html",'r'))
 	# print(souppage.div[''])
 	# for line in souppage.find_all('div'):
@@ -105,5 +116,59 @@ def main():
 	# print(wordlist)
 	# print(souppage.prettify())
 	# print(souppage.find_all('a'))
+
+def preprocessing(wordlist, artist, song):
+	chorus_list = []
+	repeat = 0
+	repeatflag = False
+	chorusflag = False
+	recordflag = False
+	breakflag = False
+	for word in wordlist:
+		if word == '[Chorus:]':
+			repeatflag = True
+		elif word == '[Chorus:':
+			chorusflag=True
+		elif chorusflag and word.endswith(']'):
+			recordflag=True
+		elif recordflag and word == '<br/>':
+			if breakflag:
+				chorusflag=False
+				recordflag=False
+			else:
+				breakflag = True
+		elif repeatflag and word.endswith('X'):
+			repeat = int(word[1])
+			repeatflag = False
+		else:
+			if recordflag:
+				chorus_list += [word]
+				breakflag = False
+
+	for i in range(repeat):
+		wordlist += chorus_list
+
+	delete_flag = False
+	file = open('../lyrics/%s-%s.txt' % (artist, song), 'w')
+	newlist = []
+	for word in wordlist:
+		if word[:4] == '<div' or word == '<br/>' or word == '</div>' or word == '\n' or word == ' -':
+			continue
+		elif word == '[Chorus:]':
+			delete_flag = True
+		elif word.endswith('X'):
+			delete_flag = False
+			continue
+		elif word.startswith('[') and word.endswith(']'): 
+			continue
+		elif word.startswith('['):
+			delete_flag = True
+		elif word.endswith(']'):
+			delete_flag = False
+			continue
+		if not delete_flag:
+			word = word.strip(' ;!,?(){}*')
+			file.write(word + ' ')
+	file.close()
 
 main()
