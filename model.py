@@ -49,10 +49,10 @@ class NaiveBayesTextClassification:
         self.tokenize_doc = tokenizer
         self.rap_dir = os.path.join(path_to_data, "rap")
         self.country_dir = os.path.join(path_to_data, "country")
-        self.rap_train_dir = os.path.join(rap_dir, "train")
-        self.rap_test_dir = os.path.join(rap_dir, "test")
-        self.country_train_dir = os.path.join(country_dir, "train")
-        self.country_test_dir = os.path.join(country_dir, "test")
+        self.rap_train_dir = os.path.join(self.rap_dir, "train")
+        self.rap_test_dir = os.path.join(self.rap_dir, "test")
+        self.country_train_dir = os.path.join(self.country_dir, "train")
+        self.country_test_dir = os.path.join(self.country_dir, "test")
 
         # class_total_doc_counts is a dictionary that maps a class (i.e., pos/neg) to
         # the number of documents in the trainning set of that class
@@ -87,7 +87,7 @@ class NaiveBayesTextClassification:
 
         pos_rap_path = os.path.join(self.rap_train_dir, RAP_POS_LABEL)
         neg_rap_path = os.path.join(self.rap_train_dir, RAP_NEG_LABEL)
-        for (p, label) in [ (pos_rap_path, RAP_POS_LABEL), (neg_par_path, RAP_NEG_LABEL) ]:
+        for (p, label) in [ (pos_rap_path, RAP_POS_LABEL), (neg_rap_path, RAP_NEG_LABEL) ]:
             for f in os.listdir(p):
                 with open(os.path.join(p,f),'r') as doc:
                     content = doc.read()
@@ -100,10 +100,10 @@ class NaiveBayesTextClassification:
         """
 
         print ("REPORTING CORPUS STATISTICS")
-        print ("NUMBER OF DOCUMENTS IN POSITIVE CLASS:", self.class_total_doc_counts[POS_LABEL])
-        print ("NUMBER OF DOCUMENTS IN NEGATIVE CLASS:", self.class_total_doc_counts[NEG_LABEL])
-        print ("NUMBER OF TOKENS IN POSITIVE CLASS:", self.class_total_word_counts[POS_LABEL])
-        print ("NUMBER OF TOKENS IN NEGATIVE CLASS:", self.class_total_word_counts[NEG_LABEL])
+        print ("NUMBER OF DOCUMENTS IN POSITIVE CLASS:", self.class_total_doc_counts[RAP_POS_LABEL])
+        print ("NUMBER OF DOCUMENTS IN NEGATIVE CLASS:", self.class_total_doc_counts[RAP_NEG_LABEL])
+        print ("NUMBER OF TOKENS IN POSITIVE CLASS:", self.class_total_word_counts[RAP_POS_LABEL])
+        print ("NUMBER OF TOKENS IN NEGATIVE CLASS:", self.class_total_word_counts[RAP_NEG_LABEL])
         print ("VOCABULARY SIZE: NUMBER OF UNIQUE WORDTYPES IN TRAINING CORPUS:", len(self.vocab))
 
     def update_model(self, bow, label):
@@ -194,7 +194,7 @@ class NaiveBayesTextClassification:
 
         Returns the log prior of a document having the class 'label'.
         """
-        return math.log(self.class_total_doc_counts[label] / (self.class_total_doc_counts[POS_LABEL] + self.class_total_doc_counts[NEG_LABEL]))
+        return math.log(self.class_total_doc_counts[label] / (self.class_total_doc_counts[RAP_POS_LABEL] + self.class_total_doc_counts[RAP_NEG_LABEL]))
         
     def unnormalized_log_posterior(self, bow, label, alpha):
         """
@@ -216,9 +216,9 @@ class NaiveBayesTextClassification:
         (depending on which resulted in the higher unnormalized log posterior)
         bow - a bag of words (i.e., a tokenized document)
         """
-        pos_unnormalized = self.unnormalized_log_posterior(bow, POS_LABEL, alpha)
-        neg_unnormalized = self.unnormalized_log_posterior(bow, NEG_LABEL, alpha)
-        return POS_LABEL if pos_unnormalized > neg_unnormalized else NEG_LABEL
+        pos_unnormalized = self.unnormalized_log_posterior(bow, RAP_POS_LABEL, alpha)
+        neg_unnormalized = self.unnormalized_log_posterior(bow, RAP_NEG_LABEL, alpha)
+        return RAP_POS_LABEL if pos_unnormalized > neg_unnormalized else RAP_NEG_LABEL
 
     def likelihood_ratio(self, word, alpha):
         """
@@ -226,7 +226,7 @@ class NaiveBayesTextClassification:
 
         Returns the ratio of P(word|pos) to P(word|neg).
         """
-        return self.p_word_given_label_and_alpha(word, POS_LABEL, alpha) / self.p_word_given_label_and_alpha(word, NEG_LABEL, alpha)
+        return self.p_word_given_label_and_alpha(word, RAP_POS_LABEL, alpha) / self.p_word_given_label_and_alpha(word, RAP_NEG_LABEL, alpha)
 
     def evaluate_classifier_accuracy(self, alpha):
         """
@@ -240,9 +240,9 @@ class NaiveBayesTextClassification:
         correct = 0.0
         total = 0.0
 
-        pos_path = os.path.join(self.test_dir, POS_LABEL)
-        neg_path = os.path.join(self.test_dir, NEG_LABEL)
-        for (p, label) in [ (pos_path, POS_LABEL), (neg_path, NEG_LABEL) ]:
+        pos_path = os.path.join(self.rap_test_dir, RAP_POS_LABEL)
+        neg_path = os.path.join(self.rap_test_dir, RAP_NEG_LABEL)
+        for (p, label) in [ (pos_path, RAP_POS_LABEL), (neg_path, RAP_NEG_LABEL) ]:
             for f in os.listdir(p):
                 with open(os.path.join(p,f),'r') as doc:
                     content = doc.read()
