@@ -13,9 +13,10 @@ class Soup: #why did i make this
 #3. uncomment req variable and souppage variable
 #4. make soupstring = str(souppage) instead of lupe
 #5. voila bitch
+
 def main():
 	# lupe = bs4(codecs.open("b.html",'r'),'html.parser') #a.html from the same folder
-	urlpage = 'https://www.lyricsfreak.com/b/blake+shelton/god+gave+me+you_20917016.html'
+	urlpage = 'https://www.lyricsfreak.com/r/roc+marciano/love+means_21520537.html'
 	req = Request(urlpage, headers={'User-Agent': 'Mozilla/5.0'})  #the block all humans
 	souppage = bs4(urlopen(req).read(),'html.parser') #so many different variations
 	soupstring=str(souppage)
@@ -85,38 +86,8 @@ def main():
 	song = identity[5].split('_')[0]
 
 	preprocessing(wordlist, artist, song)
+	print(song)
 
-	# print(codecs.open("b.html",'r'))
-	# print(souppage.div[''])
-	# for line in souppage.find_all('div'):
-	# 	if souppage.div['id'] == 'content_h':
-	# 		print(line)
-	# for page in souppage.find_all('a'):
-	# 	for tag in page:#for every tag in page
-	# 		# print(tag)
-	# 		# print("hello")
-	# 		for char in tag:
-	# 			# print(char)
-	# 			if char=='n':
-	# 				pass
-	# 			if char==' ' or char== '':
-	# 				if len(word)!=0:
-	# 					wordlist.append(word)
-	# 					word=""
-	# 			elif len(char)==1:
-	# 				word= word + char
-	# 				pass
-	# 			else:
-	# 				wordlist.append(char)
-	# 				# print(char)
-	# 				# print("hello")
-	# 				pass
-	# for elem in wordlist:
-	# 	if elem=='\n':
-	# 		wordlist.remove(elem)
-	# print(wordlist)
-	# print(souppage.prettify())
-	# print(souppage.find_all('a'))
 
 def preprocessing(wordlist, artist, song):
 	chorus_list = []
