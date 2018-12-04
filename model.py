@@ -132,17 +132,18 @@ class NaiveBayesTextClassification:
             genre = 'rap'
             for f in os.listdir(p):
                 with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    print(f)
                     play_count = f.split('~')[1].split('.')[0]
                     content = doc.read()
                     self.tokenize_and_update_model(content, genre, play_count)
 
-        # for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
-        #     genre = 'country'
-        #     for f in os.listdir(p):
-        #         with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
-        #             play_count = f.split('~')[1].split('.')[0]
-        #             content = doc.read()
-        #             self.tokenize_and_update_model(content, genre, play_count)
+        for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
+            genre = 'country'
+            for f in os.listdir(p):
+                with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    play_count = f.split('~')[1].split('.')[0]
+                    content = doc.read()
+                    self.tokenize_and_update_model(content, genre, play_count)
 
         self.report_statistics_after_training()
 
@@ -389,10 +390,10 @@ def main():
     print('PARTIALLY_CORRECT RESULT: ' + str(rap_results[1]))
     print('EXACT_CORRECT RESULT: ' + str(rap_results[2]))
 
-    # print('#### COUNTRY ACCURACY TEST ####\n')
-    # country_results = nb.evaluate_classifier_accuracy('country', 0.2)
-    # print('GENERALLY_CORRECT RESULT: ' + str(country_results[0]))
-    # print('PARTIALLY_CORRECT RESULT: ' + str(country_results[1]))
-    # print('EXACT_CORRECT RESULT: ' + str(country_results[2]))
+    print('\n#### COUNTRY ACCURACY TEST ####\n')
+    country_results = nb.evaluate_classifier_accuracy('country', 0.2)
+    print('GENERALLY_CORRECT RESULT: ' + str(country_results[0]))
+    print('PARTIALLY_CORRECT RESULT: ' + str(country_results[1]))
+    print('EXACT_CORRECT RESULT: ' + str(country_results[2]))
 
 main()
