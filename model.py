@@ -184,6 +184,33 @@ class NaiveBayesTextClassification:
         print ("VOCABULARY SIZE: NUMBER OF UNIQUE WORDTYPES IN TRAINING CORPUS FOR RAP:", len(self.rap_vocab))
         print ("VOCABULARY SIZE: NUMBER OF UNIQUE WORDTYPES IN TRAINING CORPUS FOR COUNTRY:", len(self.country_vocab))
 
+    def popularity_labeling(self, genre, plays):
+        if genre == 'rap':
+            if int(plays) < 100000:
+                return RAP_EXTREMELY_NEG_LABEL
+            elif int(plays) >= 100000 and int(plays) < 500000:
+                return RAP_VERY_NEG_LABEL
+            elif int(plays) >= 500000 and int(plays) < 1000000:
+                return RAP_STANDARD_NEG_LABEL
+            elif int(plays) >= 1000000 and int(plays) < 10000000:
+                return RAP_STANDARD_POS_LABEL
+            elif int(plays) >= 10000000 and int(plays) < 100000000:
+                return RAP_VERY_POS_LABEL
+            elif int(plays) >= 100000000:
+                return RAP_EXTREMELY_POS_LABEL
+        elif genre == 'country':
+            if int(plays) < 100000:
+                return COUNTRY_EXTREMELY_NEG_LABEL
+            elif int(plays) >= 100000 and int(plays) < 500000:
+                return COUNTRY_VERY_NEG_LABEL
+            elif int(plays) >= 500000 and int(plays) < 1000000:
+                return COUNTRY_STANDARD_NEG_LABEL
+            elif int(plays) >= 1000000 and int(plays) < 10000000:
+                return COUNTRY_STANDARD_POS_LABEL
+            elif int(plays) >= 10000000 and int(plays) < 100000000:
+                return COUNTRY_VERY_POS_LABEL
+            elif int(plays) >= 100000000:
+                return COUNTRY_EXTREMELY_POS_LABEL
 
     def tokenize_and_update_model(self, doc, genre, plays):
         """
@@ -194,33 +221,7 @@ class NaiveBayesTextClassification:
 
         Make sure when tokenizing to lower case all of the tokens!
         """
-        if genre == 'rap':
-            if int(plays) < 100000:
-                label = RAP_EXTREMELY_NEG_LABEL
-            elif int(plays) >= 100000 and int(plays) < 500000:
-                label = RAP_VERY_NEG_LABEL
-            elif int(plays) >= 500000 and int(plays) < 1000000:
-                label = RAP_STANDARD_NEG_LABEL
-            elif int(plays) >= 1000000 and int(plays) < 10000000:
-                label = RAP_STANDARD_POS_LABEL
-            elif int(plays) >= 10000000 and int(plays) < 100000000:
-                label = RAP_VERY_POS_LABEL
-            elif int(plays) >= 100000000:
-                label = RAP_EXTREMELY_POS_LABEL
-        elif genre == 'country':
-            if int(plays) < 100000:
-                label = COUNTRY_EXTREMELY_NEG_LABEL
-            elif int(plays) >= 100000 and int(plays) < 500000:
-                label = COUNTRY_VERY_NEG_LABEL
-            elif int(plays) >= 500000 and int(plays) < 1000000:
-                label = COUNTRY_STANDARD_NEG_LABEL
-            elif int(plays) >= 1000000 and int(plays) < 10000000:
-                label = COUNTRY_STANDARD_POS_LABEL
-            elif int(plays) >= 10000000 and int(plays) < 100000000:
-                label = COUNTRY_VERY_POS_LABEL
-            elif int(plays) >= 100000000:
-                label = COUNTRY_EXTREMELY_POS_LABEL
-
+        label = self.popularity_labeling(genre, plays)
         word_counts = Counter(tokenize_doc(doc))
         self.update_model(word_counts, label, genre)
 
@@ -340,7 +341,9 @@ class NaiveBayesTextClassification:
                     with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
                         content = doc.read()
                         bow = self.tokenize_doc(content)
-                        if self.classify(bow, genre, alpha) == label:
+                        play_count = f.split('~')[1].split('.')[0]
+                        correct_label = popularity_labeling(genre, play_count)
+                        if self.classify(bow, genre, alpha) == correct_label:
                             correct += 1.0
                         total += 1.0
             return 100 * correct / total
@@ -352,7 +355,9 @@ class NaiveBayesTextClassification:
                     with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
                         content = doc.read()
                         bow = self.tokenize_doc(content)
-                        if self.classify(bow, genre, alpha) == label:
+                        play_count = f.split('~')[1].split('.')[0]
+                        correct_label = popularity_labeling(genre, play_count)
+                        if self.classify(bow, genre, alpha) == correct_label:
                             correct += 1.0
                         total += 1.0
             return 100 * correct / total
