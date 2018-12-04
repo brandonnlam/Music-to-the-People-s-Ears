@@ -16,7 +16,7 @@ class Soup: #why did i make this
 
 def main():
 	# lupe = bs4(codecs.open("b.html",'r'),'html.parser') #a.html from the same folder
-	urlpage = 'https://www.lyricsfreak.com/j/jaden+smith/falcon_21131697.html'
+	urlpage = 'https://www.lyricsfreak.com/m/migos/culture_21124747.html'
 	req = Request(urlpage, headers={'User-Agent': 'Mozilla/5.0'})  #the block all humans
 	souppage = bs4(urlopen(req).read(),'html.parser') #so many different variations
 	soupstring=str(souppage)
