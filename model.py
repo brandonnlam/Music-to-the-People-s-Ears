@@ -342,8 +342,11 @@ class NaiveBayesTextClassification:
                         content = doc.read()
                         bow = self.tokenize_doc(content)
                         play_count = f.split('~')[1].split('.')[0]
-                        correct_label = popularity_labeling(genre, play_count)
-                        if self.classify(bow, genre, alpha) == correct_label:
+                        correct_label = self.popularity_labeling(genre, play_count)
+                        calculated_label = self.classify(bow, genre, alpha)
+                        print(correct_label, calculated_label)
+                        if calculated_label == correct_label:
+                            print('yes')
                             correct += 1.0
                         total += 1.0
             return 100 * correct / total
@@ -356,8 +359,9 @@ class NaiveBayesTextClassification:
                         content = doc.read()
                         bow = self.tokenize_doc(content)
                         play_count = f.split('~')[1].split('.')[0]
-                        correct_label = popularity_labeling(genre, play_count)
-                        if self.classify(bow, genre, alpha) == correct_label:
+                        correct_label = self.popularity_labeling(genre, play_count)
+                        calculated_label = self.classify(bow, genre, alpha)
+                        if calculated_label == correct_label:
                             correct += 1.0
                         total += 1.0
             return 100 * correct / total
@@ -369,7 +373,7 @@ def main():
     print('#### END MODEL TRAINING ####')
 
     print('#### BEGIN ACCURACY TEST ####')
-    print(nb.evaluate_classifier_accuracy('rap', 0.2))
+    print(nb.evaluate_classifier_accuracy('rap', 3))
     # print(nb.evaluate_classifier_accuracy('country', 0.2))
     print('#### END ACCURAACY TEST ###')
 
