@@ -95,7 +95,7 @@ class NaiveBayesTextClassification:
                                          COUNTRY_EXTREMELY_POS_LABEL: 0.0,
                                          COUNTRY_VERY_POS_LABEL: 0.0,
                                          COUNTRY_STANDARD_POS_LABEL: 0.0,
-                                         COUNTRY_STRANDARD_NEG_LABEL: 0.0,
+                                         COUNTRY_STANDARD_NEG_LABEL: 0.0,
                                          COUNTRY_VERY_NEG_LABEL: 0.0,
                                          COUNTRY_EXTREMELY_NEG_LABEL: 0.0 }
 
@@ -131,18 +131,18 @@ class NaiveBayesTextClassification:
         for (p, label) in [ (pos_rap_path, RAP_POS_LABEL), (neg_rap_path, RAP_NEG_LABEL) ]:
             genre = 'rap'
             for f in os.listdir(p):
-                with open(os.path.join(p,f), encoding = "ISO-8859-1") as doc:
-                    play_count = filename.split('~')[1].split('.')[0]
+                with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    play_count = f.split('~')[1].split('.')[0]
                     content = doc.read()
                     self.tokenize_and_update_model(content, genre, play_count)
 
-        for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
-            genre = 'country'
-            for f in os.listdir(p):
-                with open(os.path.join(p,f), encoding = "ISO-8859-1") as doc:
-                    play_count = filename.split('~')[1].split('.')[0]
-                    content = doc.read()
-                    self.tokenize_and_update_model(content, genre, play_count)
+        # for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
+        #     genre = 'country'
+        #     for f in os.listdir(p):
+        #         with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+        #             play_count = f.split('~')[1].split('.')[0]
+        #             content = doc.read()
+        #             self.tokenize_and_update_model(content, genre, play_count)
 
         self.report_statistics_after_training()
 
@@ -249,14 +249,17 @@ class NaiveBayesTextClassification:
             self.class_total_word_counts[label] += item[1]
         self.class_total_doc_counts[label] += 1
 
-    def p_word_given_label_and_alpha(self, word, label, alpha):
+    def p_word_given_label_and_alpha(self, word, label, genre, alpha):
         """
         Returns the probability of word given label wrt psuedo counts.
         alpha - smoothing parameter
         """
-        return (self.class_word_counts[label][word] + alpha) / (self.class_total_word_counts[label] + len(self.vocab) * alpha)
+        if genre == 'rap':
+            return (self.class_word_counts[label][word] + alpha) / (self.class_total_word_counts[label] + len(self.rap_vocab) * alpha)
+        elif genre == 'country':
+            return (self.class_word_counts[label][word] + alpha) / (self.class_total_word_counts[label] + len(self.country_vocab) * alpha)
 
-    def log_likelihood(self, bow, label, alpha):
+    def log_likelihood(self, bow, label, genre, alpha):
         """
         Computes the log likelihood of a set of words given a label and smoothing.
         bow - a bag of words (i.e., a tokenized document)
@@ -265,40 +268,59 @@ class NaiveBayesTextClassification:
         """
         log_sum = 0.0
         for item in bow.items():
-            log_sum += item[1]*math.log(label)+ item[1]*math.log(self.p_word_given_label_and_alpha(item[0], label, alpha))
+            if label == RAP_EXTREMELY_POS_LABEL or label == RAP_EXTREMELY_NEG_LABEL or label == COUNTRY_EXTREMELY_POS_LABEL or label ==COUNTRY_EXTREMELY_NEG_LABEL:
+                multiplier = 3
+            elif label == RAP_VERY_POS_LABEL or label == RAP_VERY_NEG_LABEL or label == COUNTRY_VERY_POS_LABEL or label == COUNTRY_VERY_NEG_LABEL:
+                multiplier = 2
+            elif label == RAP_STANDARD_POS_LABEL or label == RAP_STANDARD_NEG_LABEL or label == COUNTRY_STANDARD_POS_LABEL or label == COUNTRY_STANDARD_NEG_LABEL:
+                multiplier = 1
+            log_sum += item[1]*math.log(multiplier)+ item[1]*math.log(self.p_word_given_label_and_alpha(item[0], label, genre, alpha))
         return log_sum
 
-    def log_prior(self, label):
+    def log_prior(self, label, genre):
         """
         Returns the log prior of a document having the class 'label'.
         """
-        return math.log(self.class_total_doc_counts[label] / (self.class_total_doc_counts[RAP_POS_LABEL] + self.class_total_doc_counts[RAP_NEG_LABEL]))
-        
-    def unnormalized_log_posterior(self, bow, label, alpha):
+        if genre == 'rap':
+            return math.log(self.class_total_doc_counts[label] / (self.class_total_doc_counts[RAP_EXTREMELY_POS_LABEL] + self.class_total_doc_counts[RAP_VERY_POS_LABEL] + self.class_total_doc_counts[RAP_STANDARD_POS_LABEL] + self.class_total_doc_counts[RAP_EXTREMELY_NEG_LABEL] + self.class_total_doc_counts[RAP_VERY_NEG_LABEL] + self.class_total_doc_counts[RAP_STANDARD_NEG_LABEL]))
+        elif genre == 'country':
+            return math.log(self.class_total_doc_counts[label] / (self.class_total_doc_counts[COUNTRY_EXTREMELY_POS_LABEL] + self.class_total_doc_counts[COUNTRY_VERY_POS_LABEL] + self.class_total_doc_counts[COUNTRY_STANDARD_POS_LABEL] + self.class_total_doc_counts[COUNTRY_EXTREMELY_NEG_LABEL] + self.class_total_doc_counts[COUNTRY_VERY_NEG_LABEL] + self.class_total_doc_counts[COUNTRY_STANDARD_NEG_LABEL]))
+
+    def unnormalized_log_posterior(self, bow, label, genre, alpha):
         """
         Computes the unnormalized log posterior (of doc being of class 'label').
         bow - a bag of words (i.e., a tokenized document)
         """
-        unnormalized_likelihood = self.log_likelihood(bow, label, alpha)
-        unnormalized_prior = self.log_prior(label)
+        unnormalized_likelihood = self.log_likelihood(bow, label, genre, alpha)
+        unnormalized_prior = self.log_prior(label, genre)
         return unnormalized_likelihood + unnormalized_prior
 
-    def classify(self, bow, alpha):
+    def classify(self, bow, genre, alpha):
         """
         Compares the unnormalized log posterior for doc for both the positive
         and negative classes and returns the either POS_LABEL or NEG_LABEL
         (depending on which resulted in the higher unnormalized log posterior)
         bow - a bag of words (i.e., a tokenized document)
         """
-        pos_unnormalized = self.unnormalized_log_posterior(bow, RAP_POS_LABEL, alpha)
-        neg_unnormalized = self.unnormalized_log_posterior(bow, RAP_NEG_LABEL, alpha)
-        return RAP_POS_LABEL if pos_unnormalized > neg_unnormalized else RAP_NEG_LABEL
+        if genre == 'rap':
+            max_label = None
+            labels = [RAP_EXTREMELY_POS_LABEL, RAP_VERY_POS_LABEL, RAP_STANDARD_POS_LABEL, RAP_STANDARD_NEG_LABEL, RAP_VERY_NEG_LABEL, RAP_EXTREMELY_NEG_LABEL]
+            for l in labels:
+                if max_label:
+                    max_label = max(max_label, (l, self.unnormalized_log_posterior(bow, l, genre, alpha)), key=lambda x: x[1])
+                else:
+                    max_label = (l, self.unnormalized_log_posterior(bow, l, genre, alpha))
+            return max_label[0]
+        elif genre == 'country':
+            max_label = None
+            labels = [COUNTRY_EXTREMELY_POS_LABEL, COUNTRY_VERY_POS_LABEL, COUNTRY_STANDARD_POS_LABEL, COUNTRY_STANDARD_NEG_LABEL, COUNTRY_VERY_NEG_LABEL, COUNTRY_EXTREMELY_NEG_LABEL]
+            for l in labels:
+                if max_label:
+                    max_label = max(max_label, (l, self.unnormalized_log_posterior(bow, l, genre, alpha)), key=lambda x: x[1])
+                else:
+                    max_label = (l, self.unnormalized_log_posterior(bow, l, genre, alpha))
+            return max_label[0]
 
-    def likelihood_ratio(self, word, alpha):
-        """
-        Returns the ratio of P(word|pos) to P(word|neg).
-        """
-        return self.p_word_given_label_and_alpha(word, RAP_POS_LABEL, alpha) / self.p_word_given_label_and_alpha(word, RAP_NEG_LABEL, alpha)
 
     def evaluate_classifier_accuracy(self, genre, alpha):
         """
@@ -315,10 +337,10 @@ class NaiveBayesTextClassification:
             neg_path = os.path.join(self.rap_test_dir, RAP_NEG_LABEL)
             for (p, label) in [ (pos_path, RAP_POS_LABEL), (neg_path, RAP_NEG_LABEL) ]:
                 for f in os.listdir(p):
-                    with open(os.path.join(p,f),'r') as doc:
+                    with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
                         content = doc.read()
                         bow = self.tokenize_doc(content)
-                        if self.classify(bow, alpha) == label:
+                        if self.classify(bow, genre, alpha) == label:
                             correct += 1.0
                         total += 1.0
             return 100 * correct / total
@@ -327,10 +349,10 @@ class NaiveBayesTextClassification:
             neg_path = os.path.join(self.country_test_dir, COUNTRY_NEG_LABEL)
             for (p, label) in [ (pos_path, COUNTRY_POS_LABEL), (neg_path, COUNTRY_NEG_LABEL) ]:
                 for f in os.listdir(p):
-                    with open(os.path.join(p,f),'r') as doc:
+                    with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
                         content = doc.read()
                         bow = self.tokenize_doc(content)
-                        if self.classify(bow, alpha) == label:
+                        if self.classify(bow, genre, alpha) == label:
                             correct += 1.0
                         total += 1.0
             return 100 * correct / total
@@ -342,6 +364,8 @@ def main():
     print('#### END MODEL TRAINING ####')
 
     print('#### BEGIN ACCURACY TEST ####')
+    print(nb.evaluate_classifier_accuracy('rap', 0.2))
+    # print(nb.evaluate_classifier_accuracy('country', 0.2))
     print('#### END ACCURAACY TEST ###')
 
 main()
