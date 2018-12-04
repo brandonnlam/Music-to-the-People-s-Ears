@@ -17,16 +17,16 @@ COUNTRY_NEG_LABEL = 'unpopular_country'
 # Global popularity labels.
 RAP_EXTREMELY_POS_LABEL = 'extremely_popular_rap'
 RAP_VERY_POS_LABEL = 'very_popular_rap'
-RAP_STANDARD_POS_LABEL = 'popular_rap'
+RAP_STANDARD_POS_LABEL = 'standard_popular_rap'
 RAP_STANDARD_NEG_LABEL = 'extremely_unpopular_rap'
 RAP_VERY_NEG_LABEL = 'very_unpopular_rap'
-RAP_EXTREMELY_NEG_LABEL = 'unpopular_rap'
+RAP_EXTREMELY_NEG_LABEL = 'standard_unpopular_rap'
 COUNTRY_EXTREMELY_POS_LABEL = 'extremely_popular_country'
 COUNTRY_VERY_POS_LABEL = 'very_popular_country'
-COUNTRY_STANDARD_POS_LABEL = 'popular_country'
+COUNTRY_STANDARD_POS_LABEL = 'standard_popular_country'
 COUNTRY_STANDARD_NEG_LABEL = 'extremely_unpopular_country'
 COUNTRY_VERY_NEG_LABEL = 'very_unpopular_country'
-COUNTRY_EXTREMELY_NEG_LABEL = 'unpopular_country'
+COUNTRY_EXTREMELY_NEG_LABEL = 'standard_unpopular_country'
 
 def tokenize_doc(doc):
     """
@@ -330,7 +330,9 @@ class NaiveBayesTextClassification:
         compute the accuracy of the classifier (the fraction of classifications
         the classifier gets right.
         """
-        correct = 0.0
+        generally_correct = 0.0
+        partially_correct = 0.0
+        exact_correct = 0.0
         total = 0.0
 
         if genre == 'rap':
@@ -344,12 +346,16 @@ class NaiveBayesTextClassification:
                         play_count = f.split('~')[1].split('.')[0]
                         correct_label = self.popularity_labeling(genre, play_count)
                         calculated_label = self.classify(bow, genre, alpha)
-                        print(correct_label, calculated_label)
+                        # print(correct_label, calculated_label)
                         if calculated_label == correct_label:
-                            print('yes')
-                            correct += 1.0
+                            generally_correct += 1.0
+                            partially_correct += 1.0
+                            exact_correct += 1.0
+                        elif calculated_label.split('_')[1] == correct_label.split('_')[1]:
+                            generally_correct += 1.0
+                            partially_correct += 0.5
                         total += 1.0
-            return 100 * correct / total
+            return (100 * generally_correct / total, 100 * partially_correct / total, 100 * exact_correct / total)
         elif genre == 'country':
             pos_path = os.path.join(self.country_test_dir, COUNTRY_POS_LABEL)
             neg_path = os.path.join(self.country_test_dir, COUNTRY_NEG_LABEL)
@@ -361,20 +367,32 @@ class NaiveBayesTextClassification:
                         play_count = f.split('~')[1].split('.')[0]
                         correct_label = self.popularity_labeling(genre, play_count)
                         calculated_label = self.classify(bow, genre, alpha)
+                        # print(correct_label, calculated_label)
                         if calculated_label == correct_label:
-                            correct += 1.0
+                            generally_correct += 1.0
+                            partially_correct += 1.0
+                            exact_correct += 1.0
+                        elif calculated_label.split('_')[1] == correct_label.split('_')[1]:
+                            generally_correct += 1.0
+                            partially_correct += 0.5
                         total += 1.0
-            return 100 * correct / total
+            return (100 * generally_correct / total, 100 * partially_correct / total, 100 * exact_correct / total)
 
 def main():
     nb = NaiveBayesTextClassification('lyrics', tokenizer=tokenize_doc)
-    print('#### BEGIN MODEL TRAINING ####')
+    print('\n#### MODEL TRAINING ####\n')
     nb.train_model()
-    print('#### END MODEL TRAINING ####')
 
-    print('#### BEGIN ACCURACY TEST ####')
-    print(nb.evaluate_classifier_accuracy('rap', 3))
-    # print(nb.evaluate_classifier_accuracy('country', 0.2))
-    print('#### END ACCURAACY TEST ###')
+    print('\n#### RAP ACCURACY TEST ####\n')
+    rap_results = nb.evaluate_classifier_accuracy('rap', 0.2)
+    print('GENERALLY_CORRECT RESULT: ' + str(rap_results[0]))
+    print('PARTIALLY_CORRECT RESULT: ' + str(rap_results[1]))
+    print('EXACT_CORRECT RESULT: ' + str(rap_results[2]))
+
+    # print('#### COUNTRY ACCURACY TEST ####\n')
+    # country_results = nb.evaluate_classifier_accuracy('country', 0.2)
+    # print('GENERALLY_CORRECT RESULT: ' + str(country_results[0]))
+    # print('PARTIALLY_CORRECT RESULT: ' + str(country_results[1]))
+    # print('EXACT_CORRECT RESULT: ' + str(country_results[2]))
 
 main()
