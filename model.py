@@ -28,6 +28,9 @@ COUNTRY_STANDARD_NEG_LABEL = 'extremely_unpopular_country'
 COUNTRY_VERY_NEG_LABEL = 'very_unpopular_country'
 COUNTRY_EXTREMELY_NEG_LABEL = 'standard_unpopular_country'
 
+RAP_FEATURES = []
+COUNTRY_FEATURES = []
+
 def tokenize_doc(doc):
     """
     Tokenize a document and return its bag-of-words representation.
@@ -41,19 +44,90 @@ def tokenize_doc(doc):
         bow[token] += 1.0
     return dict(bow)
 
-def n_word_types(word_counts):
-    '''
-    return a count of all word types in the corpus
-    using information from word_counts
-    '''
-    return len(word_counts)
+def feature_generation(path_to_data):
+    """
+    Feature generation for the document after tokenizing.
+    """
+    rap_dir = os.path.join(path_to_data, "rap")
+    country_dir = os.path.join(path_to_data, "country")
+    rap_train_dir = os.path.join(rap_dir, "train")
+    rap_test_dir = os.path.join(rap_dir, "test")
+    country_train_dir = os.path.join(country_dir, "train")
+    country_test_dir = os.path.join(country_dir, "test")
 
-def n_word_tokens(word_counts):
-    '''
-    return a count of all word tokens in the corpus
-    using information from word_counts
-    '''
-    return int(sum(word_counts.values()))
+    pos_rap_path = os.path.join(rap_train_dir, RAP_POS_LABEL)
+    neg_rap_path = os.path.join(rap_train_dir, RAP_NEG_LABEL)
+    pos_country_path = os.path.join(country_train_dir, COUNTRY_POS_LABEL)
+    neg_country_path = os.path.join(country_train_dir, COUNTRY_NEG_LABEL)
+
+    for (p, label) in [ (pos_rap_path, RAP_POS_LABEL), (neg_rap_path, RAP_NEG_LABEL) ]:
+        genre = 'rap'
+        for f in os.listdir(p):
+            with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                content = doc.read()
+                word_counts = Counter(tokenize_doc(content))
+
+                # Features
+                unique = unique_words(word_counts)
+                repeated = repeated_words(word_counts)
+                most_frequent = most_frequent_word(word_counts)
+                length = song_length(word_counts)
+                average = average_word_length(word_counts)
+                title = frequency_title_words(word_counts)
+                RAP_FEATURES.append([unique, repeated, most_frequent, length, average, title])
+
+    for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
+        genre = 'country'
+        for f in os.listdir(p):
+            with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                content = doc.read()
+                word_counts = Counter(tokenize_doc(content))
+
+                # Features
+                unique = unique_words(word_counts)
+                repeated = repeated_words(word_counts)
+                most_frequent = most_frequent_word(word_counts)
+                length = song_length(word_counts)
+                average = average_word_length(word_counts)
+                title = frequency_title_words(word_counts)
+                COUNTRY_FEATURES.append([unique, repeated, most_frequent, length, average, title])
+
+# Feature Generation Methods
+def unique_words(bow):
+    """
+    Return the number of unique words.
+    """
+    return len(bow)
+
+def repeated_words(bow):
+    """
+    Return how many times words are repeated.
+    """
+    pass
+
+def most_frequent_word(bow):
+    """
+    Return most frequent word.
+    """
+    pass
+
+def song_length(bow):
+    """
+    Return total number of words in a song.
+    """
+    pass
+
+def average_word_length(bow):
+    """
+    Return the average word length of a song.
+    """
+    pass
+
+def frequency_title_words(bow):
+    """
+    Return the frequency of title words appearing in a song.
+    """
+    pass
 
 class NaiveBayesTextClassification:
     def __init__(self, path_to_data, tokenizer):
@@ -132,17 +206,19 @@ class NaiveBayesTextClassification:
             genre = 'rap'
             for f in os.listdir(p):
                 with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    print(f)
                     play_count = f.split('~')[1].split('.')[0]
                     content = doc.read()
                     self.tokenize_and_update_model(content, genre, play_count)
 
-        # for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
-        #     genre = 'country'
-        #     for f in os.listdir(p):
-        #         with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
-        #             play_count = f.split('~')[1].split('.')[0]
-        #             content = doc.read()
-        #             self.tokenize_and_update_model(content, genre, play_count)
+        for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
+            genre = 'country'
+            for f in os.listdir(p):
+                with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    print(f)
+                    play_count = f.split('~')[1].split('.')[0]
+                    content = doc.read()
+                    self.tokenize_and_update_model(content, genre, play_count)
 
         self.report_statistics_after_training()
 
@@ -275,7 +351,7 @@ class NaiveBayesTextClassification:
                 multiplier = 2
             elif label == RAP_STANDARD_POS_LABEL or label == RAP_STANDARD_NEG_LABEL or label == COUNTRY_STANDARD_POS_LABEL or label == COUNTRY_STANDARD_NEG_LABEL:
                 multiplier = 1
-            log_sum += item[1]*math.log(multiplier)+ item[1]*math.log(self.p_word_given_label_and_alpha(item[0], label, genre, alpha))
+            log_sum += item[1]*math.log(multiplier) + item[1]*math.log(self.p_word_given_label_and_alpha(item[0], label, genre, alpha))
         return log_sum
 
     def log_prior(self, label, genre):
@@ -321,7 +397,6 @@ class NaiveBayesTextClassification:
                 else:
                     max_label = (l, self.unnormalized_log_posterior(bow, l, genre, alpha))
             return max_label[0]
-
 
     def evaluate_classifier_accuracy(self, genre, alpha):
         """
@@ -379,20 +454,25 @@ class NaiveBayesTextClassification:
             return (100 * generally_correct / total, 100 * partially_correct / total, 100 * exact_correct / total)
 
 def main():
-    nb = NaiveBayesTextClassification('lyrics', tokenizer=tokenize_doc)
-    print('\n#### MODEL TRAINING ####\n')
-    nb.train_model()
+    # nb = NaiveBayesTextClassification('lyrics', tokenizer=tokenize_doc)
+    # print('\n#### NAIVE BAYES MODEL TRAINING ####\n')
+    # nb.train_model()
 
-    print('\n#### RAP ACCURACY TEST ####\n')
-    rap_results = nb.evaluate_classifier_accuracy('rap', 0.2)
-    print('GENERALLY_CORRECT RESULT: ' + str(rap_results[0]))
-    print('PARTIALLY_CORRECT RESULT: ' + str(rap_results[1]))
-    print('EXACT_CORRECT RESULT: ' + str(rap_results[2]))
+    # print('\n#### RAP ACCURACY TEST ####\n')
+    # rap_results = nb.evaluate_classifier_accuracy('rap', 0.2)
+    # print('GENERALLY_CORRECT RESULT: ' + str(rap_results[0]))
+    # print('PARTIALLY_CORRECT RESULT: ' + str(rap_results[1]))
+    # print('EXACT_CORRECT RESULT: ' + str(rap_results[2]))
 
-    # print('#### COUNTRY ACCURACY TEST ####\n')
+    # print('\n#### COUNTRY ACCURACY TEST ####\n')
     # country_results = nb.evaluate_classifier_accuracy('country', 0.2)
     # print('GENERALLY_CORRECT RESULT: ' + str(country_results[0]))
     # print('PARTIALLY_CORRECT RESULT: ' + str(country_results[1]))
     # print('EXACT_CORRECT RESULT: ' + str(country_results[2]))
+
+    print('\n#### GENERATING FEATURES ####\n')
+    feature_generation('lyrics')
+    print(RAP_FEATURES)
+    print(COUNTRY_FEATURES)
 
 main()
