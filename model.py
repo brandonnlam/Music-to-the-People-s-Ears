@@ -5,8 +5,10 @@ import math
 import os
 import time
 import operator
-
-from collections import defaultdict, Counter
+import numpy
+from   collections import defaultdict, Counter
+from   sklearn import datasets
+from   sklearn.linear_model import LogisticRegression
 
 # Global class labels.
 RAP_POS_LABEL = 'popular_rap'
@@ -28,9 +30,6 @@ COUNTRY_STANDARD_NEG_LABEL = 'extremely_unpopular_country'
 COUNTRY_VERY_NEG_LABEL = 'very_unpopular_country'
 COUNTRY_EXTREMELY_NEG_LABEL = 'standard_unpopular_country'
 
-RAP_FEATURES = []
-COUNTRY_FEATURES = []
-
 def tokenize_doc(doc):
     """
     Tokenize a document and return its bag-of-words representation.
@@ -44,118 +43,43 @@ def tokenize_doc(doc):
         bow[token] += 1.0
     return dict(bow)
 
-def feature_generation(path_to_data):
-    """
-    Feature generation for the document after tokenizing.
-    """
-    rap_dir = os.path.join(path_to_data, "rap")
-    country_dir = os.path.join(path_to_data, "country")
-    rap_train_dir = os.path.join(rap_dir, "train")
-    rap_test_dir = os.path.join(rap_dir, "test")
-    country_train_dir = os.path.join(country_dir, "train")
-    country_test_dir = os.path.join(country_dir, "test")
+def popularity_labeling(genre, plays):
+        if genre == 'rap':
+            if int(plays) < 100000:
+                return RAP_EXTREMELY_NEG_LABEL
+            elif int(plays) >= 100000 and int(plays) < 500000:
+                return RAP_VERY_NEG_LABEL
+            elif int(plays) >= 500000 and int(plays) < 1000000:
+                return RAP_STANDARD_NEG_LABEL
+            elif int(plays) >= 1000000 and int(plays) < 10000000:
+                return RAP_STANDARD_POS_LABEL
+            elif int(plays) >= 10000000 and int(plays) < 100000000:
+                return RAP_VERY_POS_LABEL
+            elif int(plays) >= 100000000:
+                return RAP_EXTREMELY_POS_LABEL
+        elif genre == 'country':
+            if int(plays) < 100000:
+                return COUNTRY_EXTREMELY_NEG_LABEL
+            elif int(plays) >= 100000 and int(plays) < 500000:
+                return COUNTRY_VERY_NEG_LABEL
+            elif int(plays) >= 500000 and int(plays) < 1000000:
+                return COUNTRY_STANDARD_NEG_LABEL
+            elif int(plays) >= 1000000 and int(plays) < 10000000:
+                return COUNTRY_STANDARD_POS_LABEL
+            elif int(plays) >= 10000000 and int(plays) < 100000000:
+                return COUNTRY_VERY_POS_LABEL
+            elif int(plays) >= 100000000:
+                return COUNTRY_EXTREMELY_POS_LABEL
 
-    pos_rap_path = os.path.join(rap_train_dir, RAP_POS_LABEL)
-    neg_rap_path = os.path.join(rap_train_dir, RAP_NEG_LABEL)
-    pos_country_path = os.path.join(country_train_dir, COUNTRY_POS_LABEL)
-    neg_country_path = os.path.join(country_train_dir, COUNTRY_NEG_LABEL)
-
-    for (p, label) in [ (pos_rap_path, RAP_POS_LABEL), (neg_rap_path, RAP_NEG_LABEL) ]:
-        genre = 'rap'
-        for f in os.listdir(p):
-            with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
-                content = doc.read()
-                word_counts = Counter(tokenize_doc(content))
-
-                # Features
-                unique = unique_words(word_counts)
-                repeated = repeated_words(word_counts)
-                most_frequent = most_frequent_word(word_counts)
-                length = song_length(word_counts)
-                average = average_word_length(word_counts)
-                title = frequency_title_words(word_counts)
-                RAP_FEATURES.append([unique, repeated, most_frequent, length, average, title])
-
-    for (p, label) in [ (pos_country_path, COUNTRY_POS_LABEL), (neg_country_path, COUNTRY_NEG_LABEL) ]:
-        genre = 'country'
-        for f in os.listdir(p):
-            with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
-                content = doc.read()
-                word_counts = Counter(tokenize_doc(content))
-
-                # Features
-                unique = unique_words(word_counts)
-                repeated = repeated_words(word_counts)
-                most_frequent = most_frequent_word(word_counts)
-                length = song_length(word_counts)
-                average = average_word_length(word_counts)
-                title = frequency_title_words(word_counts)
-                COUNTRY_FEATURES.append([unique, repeated, most_frequent, length, average, title])
-
-# Feature Generation Methods
-def unique_words(bow):
-    """
-    Return the number of unique words.
-    """
-    return len(bow)
-
-def repeated_words(bow):
-    """
-    Return how many times words are repeated.
-    """
-    pass
-
-def most_frequent_word(bow):
-    """
-    Return most frequent word.
-    """
-    answer=None
-    highest=0
-    for word,count in bow.items():
-        if count>highest:
-            highest=count
-            answer=word
-    return answer
-
-def song_length(bow):
-    """
-    Return total number of words in a song.
-    """
-
-    total=0
-    for word,count in bow.items():
-        total=total+count
-    return int(total)
-
-def average_word_length(bow):
-    """
-    Return the average word length of a song.
-    """
-
-    length=song_length(bow)
-    max=0.0
-    for word,count in bow.items():
-        max=max+(len(word)*count)
-    if length==0:
-        return 1111111111111111111111111111111111111111111111111111
-    else:
-        return max/length
-
-
-def frequency_title_words(bow):
-    """
-    Return the frequency of title words appearing in a song.
-    """
-
-    pass
 
 class NaiveBayesTextClassification:
-    def __init__(self, path_to_data, tokenizer):
+    def __init__(self, path_to_data, tokenizer, popularity=popularity_labeling):
         # Vocabulary is a set that stores every word seen in the training data
         self.rap_vocab = set()
         self.country_vocab = set()
         self.path_to_data = path_to_data
         self.tokenize_doc = tokenizer
+        self.popularity_labeling = popularity
         self.rap_dir = os.path.join(path_to_data, "rap")
         self.country_dir = os.path.join(path_to_data, "country")
         self.rap_train_dir = os.path.join(self.rap_dir, "train")
@@ -226,7 +150,6 @@ class NaiveBayesTextClassification:
             genre = 'rap'
             for f in os.listdir(p):
                 with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
-                    print(f)
                     play_count = f.split('~')[1].split('.')[0]
                     content = doc.read()
                     self.tokenize_and_update_model(content, genre, play_count)
@@ -235,7 +158,6 @@ class NaiveBayesTextClassification:
             genre = 'country'
             for f in os.listdir(p):
                 with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
-                    print(f)
                     play_count = f.split('~')[1].split('.')[0]
                     content = doc.read()
                     self.tokenize_and_update_model(content, genre, play_count)
@@ -279,34 +201,6 @@ class NaiveBayesTextClassification:
 
         print ("VOCABULARY SIZE: NUMBER OF UNIQUE WORDTYPES IN TRAINING CORPUS FOR RAP:", len(self.rap_vocab))
         print ("VOCABULARY SIZE: NUMBER OF UNIQUE WORDTYPES IN TRAINING CORPUS FOR COUNTRY:", len(self.country_vocab))
-
-    def popularity_labeling(self, genre, plays):
-        if genre == 'rap':
-            if int(plays) < 100000:
-                return RAP_EXTREMELY_NEG_LABEL
-            elif int(plays) >= 100000 and int(plays) < 500000:
-                return RAP_VERY_NEG_LABEL
-            elif int(plays) >= 500000 and int(plays) < 1000000:
-                return RAP_STANDARD_NEG_LABEL
-            elif int(plays) >= 1000000 and int(plays) < 10000000:
-                return RAP_STANDARD_POS_LABEL
-            elif int(plays) >= 10000000 and int(plays) < 100000000:
-                return RAP_VERY_POS_LABEL
-            elif int(plays) >= 100000000:
-                return RAP_EXTREMELY_POS_LABEL
-        elif genre == 'country':
-            if int(plays) < 100000:
-                return COUNTRY_EXTREMELY_NEG_LABEL
-            elif int(plays) >= 100000 and int(plays) < 500000:
-                return COUNTRY_VERY_NEG_LABEL
-            elif int(plays) >= 500000 and int(plays) < 1000000:
-                return COUNTRY_STANDARD_NEG_LABEL
-            elif int(plays) >= 1000000 and int(plays) < 10000000:
-                return COUNTRY_STANDARD_POS_LABEL
-            elif int(plays) >= 10000000 and int(plays) < 100000000:
-                return COUNTRY_VERY_POS_LABEL
-            elif int(plays) >= 100000000:
-                return COUNTRY_EXTREMELY_POS_LABEL
 
     def tokenize_and_update_model(self, doc, genre, plays):
         """
@@ -473,26 +367,222 @@ class NaiveBayesTextClassification:
                         total += 1.0
             return (100 * generally_correct / total, 100 * partially_correct / total, 100 * exact_correct / total)
 
+class LogisticRegressionTextClassification:
+    def __init__(self, path_to_data, tokenizer, popularity):
+        self.rap_features = []
+        self.country_features = []
+        self.rap_labels = []
+        self.country_labels = []
+        self.path_to_data = path_to_data
+        self.tokenize_doc = tokenizer
+        self.popularity_labeling = popularity
+        self.rap_dir = os.path.join(path_to_data, "rap")
+        self.country_dir = os.path.join(path_to_data, "country")
+        self.rap_train_dir = os.path.join(self.rap_dir, "train")
+        self.rap_test_dir = os.path.join(self.rap_dir, "test")
+        self.country_train_dir = os.path.join(self.country_dir, "train")
+        self.country_test_dir = os.path.join(self.country_dir, "test")
+
+    def feature_generation(self):
+        """
+        Feature generation for the document after tokenizing.
+        """
+        pos_rap_train_path = os.path.join(self.rap_train_dir, RAP_POS_LABEL)
+        neg_rap_train_path = os.path.join(self.rap_train_dir, RAP_NEG_LABEL)
+        pos_rap_test_path = os.path.join(self.rap_test_dir, RAP_POS_LABEL)
+        neg_rap_test_path = os.path.join(self.rap_test_dir, RAP_NEG_LABEL)
+        pos_country_train_path = os.path.join(self.country_train_dir, COUNTRY_POS_LABEL)
+        neg_country_train_path = os.path.join(self.country_train_dir, COUNTRY_NEG_LABEL)
+        pos_country_test_path = os.path.join(self.country_test_dir, COUNTRY_POS_LABEL)
+        neg_country_test_path = os.path.join(self.country_test_dir, COUNTRY_NEG_LABEL)
+
+        for (p, label) in [ (pos_rap_train_path, RAP_POS_LABEL), (neg_rap_train_path, RAP_NEG_LABEL), (pos_rap_test_path, RAP_POS_LABEL), (neg_rap_test_path, RAP_NEG_LABEL) ]:
+            genre = 'rap'
+            for f in os.listdir(p):
+                with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    content = doc.read()
+                    word_counts = Counter(tokenize_doc(content))
+                    title_words = f.split('-')[1].split('~')[0].split('+')
+                    play_count = f.split('~')[1].split('.')[0]
+                    popularity_label = popularity_labeling(genre, play_count)
+
+                    # Features
+                    length = self.song_length(word_counts)
+                    unique = self.unique_words(word_counts, length)
+                    repeated = self.total_repeated_words(word_counts, length)
+                    repeated_unique = self.repeated_unique_words(word_counts)
+                    most_frequent = self.most_frequent_word(word_counts)
+                    average = self.average_word_length(word_counts, length)
+                    title = self.frequency_title_words(word_counts, title_words, length)
+                    self.rap_features.append([unique, repeated, repeated_unique, most_frequent, length, average, title])
+
+                    if popularity_label == RAP_EXTREMELY_NEG_LABEL:
+                        self.rap_labels.append(0)
+                    elif popularity_label == RAP_VERY_NEG_LABEL:
+                        self.rap_labels.append(1)
+                    elif popularity_label == RAP_STANDARD_NEG_LABEL:
+                        self.rap_labels.append(2)
+                    elif popularity_label == RAP_STANDARD_POS_LABEL:
+                        self.rap_labels.append(3)
+                    elif popularity_label == RAP_VERY_POS_LABEL:
+                        self.rap_labels.append(4)
+                    elif popularity_label == RAP_EXTREMELY_POS_LABEL:
+                        self.rap_labels.append(5)
+
+        for (p, label) in [ (pos_country_train_path, COUNTRY_POS_LABEL), (neg_country_train_path, COUNTRY_NEG_LABEL), (pos_country_test_path, COUNTRY_POS_LABEL), (neg_country_test_path, COUNTRY_NEG_LABEL) ]:
+            genre = 'country'
+            for f in os.listdir(p):
+                with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    content = doc.read()
+                    word_counts = Counter(tokenize_doc(content))
+                    title_words = f.split('-')[1].split('~')[0].split('+')
+                    play_count = f.split('~')[1].split('.')[0]
+                    popularity_label = self.popularity_labeling(genre, play_count)
+
+                    # Features
+                    length = self.song_length(word_counts)
+                    unique = self.unique_words(word_counts, length)
+                    repeated = self.total_repeated_words(word_counts, length)
+                    repeated_unique = self.repeated_unique_words(word_counts)
+                    most_frequent = self.most_frequent_word(word_counts)
+                    average = self.average_word_length(word_counts, length)
+                    title = self.frequency_title_words(word_counts, title_words, length)
+                    self.country_features.append([unique, repeated, repeated_unique, most_frequent, length, average, title])
+
+                    if popularity_label == COUNTRY_EXTREMELY_NEG_LABEL:
+                        self.country_labels.append(0)
+                    elif popularity_label == COUNTRY_VERY_NEG_LABEL:
+                        self.country_labels.append(1)
+                    elif popularity_label == COUNTRY_STANDARD_NEG_LABEL:
+                        self.country_labels.append(2)
+                    elif popularity_label == COUNTRY_STANDARD_POS_LABEL:
+                        self.country_labels.append(3)
+                    elif popularity_label == COUNTRY_VERY_POS_LABEL:
+                        self.country_labels.append(4)
+                    elif popularity_label == COUNTRY_EXTREMELY_POS_LABEL:
+                        self.country_labels.append(5)
+
+    # Feature Generation Methods
+    def unique_words(self, bow, length):
+        """
+        Return the ratio of the number of unique words 
+        against the total number of words.
+        """
+        return len(bow) / length
+
+    def total_repeated_words(self, bow, length):
+        """
+        Return the ratio of the total number of repeated words
+        against the total number of words.
+        """
+        total_repetitions = 0
+        for word, count in bow.items():
+            if count > 1:
+                total_repetitions += count
+        return total_repetitions / length
+
+    def repeated_unique_words(self, bow):
+        """
+        Return the ratio of the number of unique words repeated 
+        against the total number of unique words.
+        """
+        unique_repetitions = 0
+        for word, count in bow.items():
+            if count > 1:
+                unique_repetitions += count
+        return unique_repetitions / len(bow)
+
+    def most_frequent_word(self, bow):
+        """
+        Return most frequent word.
+        """
+        answer = None
+        highest = 0
+        for word, count in bow.items():
+            if count > highest:
+                highest = count
+                answer = word
+        return highest
+
+    def song_length(self, bow):
+        """
+        Return total number of words in a song.
+        """
+        total = 0
+        for word, count in bow.items():
+            total = total + count
+        return int(total)
+
+    def average_word_length(self, bow, length):
+        """
+        Return the average word length of a song.
+        """
+        max = 0.0
+        for word, count in bow.items():
+            max = max + (len(word)*count)
+        else:
+            return max / length
+
+
+    def frequency_title_words(self, bow, title_words, length):
+        """
+        Return the ratio of the frequency of title words appearing in a song
+        against the length of the song.
+        """
+        total = 0
+        for word in title_words:
+            if word in bow:
+                total += bow[word]
+        return int(total) / length
+
+    def create_model(self, genre):
+        LogReg = LogisticRegression(C=1e5, solver='lbfgs', multi_class='multinomial')
+
+        if genre == 'rap':
+            feature_array = numpy.array([numpy.array(row) for row in self.rap_features])
+            label_array = numpy.array(self.rap_labels)
+
+            X = feature_array[:, :]
+            Y = label_array
+
+            LogReg.fit(X, Y)
+            return 100 * LogReg.score(X, Y)
+        elif genre == 'country':
+            feature_array = numpy.array([numpy.array(row) for row in self.country_features])
+            label_array = numpy.array(self.country_labels)
+
+            X = feature_array[:, :]
+            Y = label_array
+
+            LogReg.fit(X, Y)
+            return 100 * LogReg.score(X, Y)
+
+
 def main():
-    # nb = NaiveBayesTextClassification('lyrics', tokenizer=tokenize_doc)
-    # print('\n#### NAIVE BAYES MODEL TRAINING ####\n')
-    # nb.train_model()
+    nb = NaiveBayesTextClassification('lyrics', tokenizer=tokenize_doc, popularity=popularity_labeling)
+    print('\n#### NAIVE BAYES MODEL TRAINING ####\n')
+    nb.train_model()
 
-    # print('\n#### RAP ACCURACY TEST ####\n')
-    # rap_results = nb.evaluate_classifier_accuracy('rap', 0.2)
-    # print('GENERALLY_CORRECT RESULT: ' + str(rap_results[0]))
-    # print('PARTIALLY_CORRECT RESULT: ' + str(rap_results[1]))
-    # print('EXACT_CORRECT RESULT: ' + str(rap_results[2]))
+    print('\n#### RAP ACCURACY TEST ####\n')
+    rap_results = nb.evaluate_classifier_accuracy('rap', 0.2)
+    print('GENERALLY_CORRECT RESULT: ' + str(rap_results[0]))
+    print('PARTIALLY_CORRECT RESULT: ' + str(rap_results[1]))
+    print('EXACT_CORRECT RESULT: ' + str(rap_results[2]))
 
-    # print('\n#### COUNTRY ACCURACY TEST ####\n')
-    # country_results = nb.evaluate_classifier_accuracy('country', 0.2)
-    # print('GENERALLY_CORRECT RESULT: ' + str(country_results[0]))
-    # print('PARTIALLY_CORRECT RESULT: ' + str(country_results[1]))
-    # print('EXACT_CORRECT RESULT: ' + str(country_results[2]))
+    print('\n#### COUNTRY ACCURACY TEST ####\n')
+    country_results = nb.evaluate_classifier_accuracy('country', 0.2)
+    print('GENERALLY_CORRECT RESULT: ' + str(country_results[0]))
+    print('PARTIALLY_CORRECT RESULT: ' + str(country_results[1]))
+    print('EXACT_CORRECT RESULT: ' + str(country_results[2]))
 
     print('\n#### GENERATING FEATURES ####\n')
-    feature_generation('lyrics')
-    print(RAP_FEATURES)
-    print(COUNTRY_FEATURES)
+    lr = LogisticRegressionTextClassification('lyrics', tokenizer=tokenize_doc, popularity=popularity_labeling)
+    lr.feature_generation()
+
+    print('\n#### RAP MODEL RESULTS ####\n')
+    print(lr.create_model('rap'))
+
+    print('\n#### COUNTRY MODEL RESULTS ####\n')
+    print(lr.create_model('country'))
 
 main()
