@@ -109,24 +109,44 @@ def most_frequent_word(bow):
     """
     Return most frequent word.
     """
-    pass
+    answer=None
+    highest=0
+    for word,count in bow.items():
+        if count>highest:
+            highest=count
+            answer=word
+    return answer
 
 def song_length(bow):
     """
     Return total number of words in a song.
     """
-    pass
+
+    total=0
+    for word,count in bow.items():
+        total=total+count
+    return int(total)
 
 def average_word_length(bow):
     """
     Return the average word length of a song.
     """
-    pass
+
+    length=song_length(bow)
+    max=0.0
+    for word,count in bow.items():
+        max=max+(len(word)*count)
+    if length==0:
+        return 1111111111111111111111111111111111111111111111111111
+    else:
+        return max/length
+
 
 def frequency_title_words(bow):
     """
     Return the frequency of title words appearing in a song.
     """
+
     pass
 
 class NaiveBayesTextClassification:
