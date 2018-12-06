@@ -494,7 +494,7 @@ class LogisticRegressionTextClassification:
 
     def most_frequent_word(self, bow):
         """
-        Return most frequent word.
+        Return most frequent count of the word.
         """
         answer = None
         highest = 0
