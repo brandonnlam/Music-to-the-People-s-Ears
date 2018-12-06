@@ -580,9 +580,9 @@ def main():
     lr.feature_generation()
 
     print('\n#### RAP MODEL RESULTS ####\n')
-    print(lr.create_model('rap'))
+    print('EXACT_CORRECT RESULT: ' + str(lr.create_model('rap')))
 
     print('\n#### COUNTRY MODEL RESULTS ####\n')
-    print(lr.create_model('country'))
+    print('EXACT_CORRECT RESULT: ' + str(lr.create_model('country')))
 
 main()
