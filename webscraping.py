@@ -121,7 +121,7 @@ def preprocessing(wordlist, artist, song):
 		wordlist += chorus_list
 
 	delete_flag = False
-	file = open('../lyrics/%s-%s.txt' % (artist, song), 'w')
+	file = open('lyrics/%s-%s.txt' % (artist, song), 'w')
 	newlist = []
 	for word in wordlist:
 		if word[:4] == '<div' or word == '<br/>' or word == '</div>' or word == '\n' or word == ' -':
