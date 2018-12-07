@@ -16,6 +16,7 @@ RAP_NEG_LABEL = 'unpopular_rap'
 COUNTRY_POS_LABEL = 'popular_country'
 COUNTRY_NEG_LABEL = 'unpopular_country'
 
+
 # Global popularity labels.
 RAP_EXTREMELY_POS_LABEL = 'extremely_popular_rap'
 RAP_VERY_POS_LABEL = 'very_popular_rap'
@@ -86,6 +87,8 @@ class NaiveBayesTextClassification:
         self.rap_test_dir = os.path.join(self.rap_dir, "test")
         self.country_train_dir = os.path.join(self.country_dir, "train")
         self.country_test_dir = os.path.join(self.country_dir, "test")
+        self.NBcount=[0,0,0,0,0,0]
+        self.NBCcount=[0,0,0,0,0,0]
 
         # class_total_doc_counts is a dictionary that maps a class (i.e., pos/neg) to
         # the number of documents in the trainning set of that class
@@ -260,9 +263,9 @@ class NaiveBayesTextClassification:
         log_sum = 0.0
         for item in bow.items():
             if label == RAP_EXTREMELY_POS_LABEL or label == RAP_EXTREMELY_NEG_LABEL or label == COUNTRY_EXTREMELY_POS_LABEL or label ==COUNTRY_EXTREMELY_NEG_LABEL:
-                multiplier = 3
+                multiplier = 1.2
             elif label == RAP_VERY_POS_LABEL or label == RAP_VERY_NEG_LABEL or label == COUNTRY_VERY_POS_LABEL or label == COUNTRY_VERY_NEG_LABEL:
-                multiplier = 2
+                multiplier = 1.1
             elif label == RAP_STANDARD_POS_LABEL or label == RAP_STANDARD_NEG_LABEL or label == COUNTRY_STANDARD_POS_LABEL or label == COUNTRY_STANDARD_NEG_LABEL:
                 multiplier = 1
             log_sum += item[1]*math.log(multiplier) + item[1]*math.log(self.p_word_given_label_and_alpha(item[0], label, genre, alpha))
@@ -335,6 +338,18 @@ class NaiveBayesTextClassification:
                         play_count = f.split('~')[1].split('.')[0]
                         correct_label = self.popularity_labeling(genre, play_count)
                         calculated_label = self.classify(bow, genre, alpha)
+                        if calculated_label==RAP_EXTREMELY_POS_LABEL:
+                            self.NBcount[0]+=1
+                        elif calculated_label==RAP_VERY_POS_LABEL:
+                            self.NBcount[1]+=1
+                        elif calculated_label==RAP_STANDARD_POS_LABEL:
+                            self.NBcount[2]+=1
+                        elif calculated_label==RAP_STANDARD_NEG_LABEL:
+                            self.NBcount[3]+=1
+                        elif calculated_label==RAP_VERY_NEG_LABEL:
+                            self.NBcount[4]+=1
+                        elif calculated_label==RAP_EXTREMELY_NEG_LABEL:
+                            self.NBcount[5]+=1
                         # print(correct_label, calculated_label)
                         if calculated_label == correct_label:
                             generally_correct += 1.0
@@ -357,6 +372,18 @@ class NaiveBayesTextClassification:
                         correct_label = self.popularity_labeling(genre, play_count)
                         calculated_label = self.classify(bow, genre, alpha)
                         # print(correct_label, calculated_label)
+                        if calculated_label==COUNTRY_EXTREMELY_POS_LABEL:
+                            self.NBCcount[0]+=1
+                        elif calculated_label==COUNTRY_VERY_POS_LABEL:
+                            self.NBCcount[1]+=1
+                        elif calculated_label==COUNTRY_STANDARD_POS_LABEL:
+                            self.NBCcount[2]+=1
+                        elif calculated_label==COUNTRY_STANDARD_NEG_LABEL:
+                            self.NBCcount[3]+=1
+                        elif calculated_label==COUNTRY_VERY_NEG_LABEL:
+                            self.NBCcount[4]+=1
+                        elif calculated_label==COUNTRY_EXTREMELY_NEG_LABEL:
+                            self.NBCcount[5]+=1
                         if calculated_label == correct_label:
                             generally_correct += 1.0
                             partially_correct += 1.0
@@ -669,5 +696,9 @@ def main():
     stats = Statistics('lyrics', tokenizer=tokenize_doc)
     stats.get_stats()
     stats.print_stats(100)
+
+    #printing for bar chart output graph
+    print(nb.NBcount)
+    print(nb.NBCcount)
 
 main()
