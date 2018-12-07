@@ -73,7 +73,7 @@ def popularity_labeling(genre, plays):
 
 
 class NaiveBayesTextClassification:
-    def __init__(self, path_to_data, tokenizer, popularity=popularity_labeling):
+    def __init__(self, path_to_data, tokenizer, popularity):
         # Vocabulary is a set that stores every word seen in the training data
         self.rap_vocab = set()
         self.country_vocab = set()
@@ -547,6 +547,7 @@ class LogisticRegressionTextClassification:
 
             LogReg.fit(X, Y)
             return 100 * LogReg.score(X, Y)
+            
         elif genre == 'country':
             feature_array = numpy.array([numpy.array(row) for row in self.country_features])
             label_array = numpy.array(self.country_labels)
@@ -557,10 +558,89 @@ class LogisticRegressionTextClassification:
             LogReg.fit(X, Y)
             return 100 * LogReg.score(X, Y)
 
+class Statistics:
+    def __init__(self, path_to_data, tokenizer):
+        self.rap_popular_words = {}
+        self.rap_unpopular_words = {}
+        self.country_popular_words = {}
+        self.country_unpopular_words = {}
+        self.path_to_data = path_to_data
+        self.tokenize_doc = tokenizer
+        self.rap_dir = os.path.join(path_to_data, "rap")
+        self.country_dir = os.path.join(path_to_data, "country")
+        self.rap_train_dir = os.path.join(self.rap_dir, "train")
+        self.rap_test_dir = os.path.join(self.rap_dir, "test")
+        self.country_train_dir = os.path.join(self.country_dir, "train")
+        self.country_test_dir = os.path.join(self.country_dir, "test")
+
+    def get_stats(self):
+        pos_rap_train_path = os.path.join(self.rap_train_dir, RAP_POS_LABEL)
+        neg_rap_train_path = os.path.join(self.rap_train_dir, RAP_NEG_LABEL)
+        pos_rap_test_path = os.path.join(self.rap_test_dir, RAP_POS_LABEL)
+        neg_rap_test_path = os.path.join(self.rap_test_dir, RAP_NEG_LABEL)
+        pos_country_train_path = os.path.join(self.country_train_dir, COUNTRY_POS_LABEL)
+        neg_country_train_path = os.path.join(self.country_train_dir, COUNTRY_NEG_LABEL)
+        pos_country_test_path = os.path.join(self.country_test_dir, COUNTRY_POS_LABEL)
+        neg_country_test_path = os.path.join(self.country_test_dir, COUNTRY_NEG_LABEL)
+
+        for (p, label) in [ (pos_rap_train_path, RAP_POS_LABEL), (neg_rap_train_path, RAP_NEG_LABEL), (pos_rap_test_path, RAP_POS_LABEL), (neg_rap_test_path, RAP_NEG_LABEL) ]:
+            genre = 'rap'
+            for f in os.listdir(p):
+                with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    content = doc.read()
+                    bow = Counter(tokenize_doc(content))
+                    if label == RAP_POS_LABEL:
+                        for item in bow.items():
+                            if item[0] in self.rap_popular_words:
+                                self.rap_popular_words[item[0]] += item[1]
+                            else: 
+                                self.rap_popular_words[item[0]] = item[1]
+                    elif label == RAP_NEG_LABEL:
+                        for item in bow.items():
+                            if item[0] in self.rap_unpopular_words:
+                                self.rap_unpopular_words[item[0]] += item[1]
+                            else: 
+                                self.rap_unpopular_words[item[0]] = item[1]
+                    
+        for (p, label) in [ (pos_country_train_path, COUNTRY_POS_LABEL), (neg_country_train_path, COUNTRY_NEG_LABEL), (pos_country_test_path, COUNTRY_POS_LABEL), (neg_country_test_path, COUNTRY_NEG_LABEL) ]:
+            genre = 'country'
+            for f in os.listdir(p):
+                with open(os.path.join(p,f), encoding="ISO-8859-1") as doc:
+                    content = doc.read()
+                    bow = Counter(tokenize_doc(content))
+                    if label == COUNTRY_POS_LABEL:
+                        for item in bow.items():
+                            if item[0] in self.country_popular_words:
+                                self.country_popular_words[item[0]] += item[1]
+                            else: 
+                                self.country_popular_words[item[0]] = item[1]
+                    elif label == COUNTRY_NEG_LABEL:
+                        for item in bow.items():
+                            if item[0] in self.country_unpopular_words:
+                                self.country_unpopular_words[item[0]] += item[1]
+                            else: 
+                                self.country_unpopular_words[item[0]] = item[1]
+
+    def print_stats(self, top):
+        genre = ''
+        sorted_rap_popular_dict = sorted(self.rap_popular_words.items(), key=operator.itemgetter(1), reverse=True)
+        sorted_rap_unpopular_dict = sorted(self.rap_unpopular_words.items(), key=operator.itemgetter(1), reverse=True)
+        sorted_country_popular_dict = sorted(self.country_popular_words.items(), key=operator.itemgetter(1), reverse=True)
+        sorted_country_unpopular_dict = sorted(self.country_unpopular_words.items(), key=operator.itemgetter(1), reverse=True)
+
+        for dictionary in [sorted_rap_popular_dict, sorted_rap_unpopular_dict, sorted_country_popular_dict, sorted_country_unpopular_dict]:
+            if dictionary == sorted_rap_popular_dict: genre = 'POPULAR RAP'
+            elif dictionary == sorted_rap_unpopular_dict: genre = 'UNPOPULAR RAP'
+            elif dictionary == sorted_country_popular_dict: genre = 'POPULAR COUNTRY'
+            elif dictionary == sorted_country_unpopular_dict: genre = 'UNPOPULAR COUNTRY'
+
+            print('\n#### TOP %d WORDS FOR %s ####\n' % (top, genre))
+            for i in range(top):
+                print(dictionary[i])
 
 def main():
-    nb = NaiveBayesTextClassification('lyrics', tokenizer=tokenize_doc, popularity=popularity_labeling)
     print('\n#### NAIVE BAYES MODEL TRAINING ####\n')
+    nb = NaiveBayesTextClassification('lyrics', tokenizer=tokenize_doc, popularity=popularity_labeling)
     nb.train_model()
 
     print('\n#### RAP ACCURACY TEST ####\n')
@@ -584,5 +664,10 @@ def main():
 
     print('\n#### COUNTRY MODEL RESULTS ####\n')
     print('EXACT_CORRECT RESULT: ' + str(lr.create_model('country')))
+
+    print('\n#### WORD STATISTICS ####\n')
+    stats = Statistics('lyrics', tokenizer=tokenize_doc)
+    stats.get_stats()
+    stats.print_stats(100)
 
 main()
